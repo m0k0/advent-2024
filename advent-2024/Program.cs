@@ -1,5 +1,5 @@
 ﻿using AdventOfCode.Y2K24;
-using AdventOfCode.Y2K24.Day01;
+using AdventOfCode.Y2K24.Solvers;
 
 ConsoleElf.WriteIntro();
 

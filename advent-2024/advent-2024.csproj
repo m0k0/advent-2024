@@ -9,8 +9,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Remove="*\*.input.txt" />
-      <Content Include="*\*.input.txt" CopyToOutputDirectory="Always" />
+      <None Remove="Input\*\*.txt" />
+      <Content Include="Input\*\*.txt" CopyToOutputDirectory="Always" />
     </ItemGroup>
 
 </Project>
