@@ -45,12 +45,11 @@ namespace AdventOfCode.Y2K24.Day01
                 lineNumber++;
             }
 
-            lineNumber++;
-            
             return Result.Ok(
                 (leftList, rightList));
         }
-        public Result Solve()
+        
+        public Result Solve(SolutionVariant? solutionVariant = 0)
         {
             var input = ParseInput();
 
@@ -64,8 +63,16 @@ namespace AdventOfCode.Y2K24.Day01
             }
             
             var (leftList, rightList) = successResult.Value;
+
+
+            var result = SolvePart1(leftList, rightList);
+
+            return result;
+        }
+
+        Result SolvePart1(List<int> leftList, List<int> rightList)
+        {
             
-                
             leftList.Sort();
             rightList.Sort();
 
