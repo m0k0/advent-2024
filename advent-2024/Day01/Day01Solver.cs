@@ -42,6 +42,7 @@ namespace AdventOfCode.Y2K24.Day01
                 rightList.Add(rightNumber);
                 
                 line = _inputReader.ReadLine();
+                lineNumber++;
             }
 
             lineNumber++;
