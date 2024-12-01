@@ -9,7 +9,7 @@ const string inputFile = "./Day01/full.input.txt";
 using var reader = new StreamReader(inputFile);
 ISolver solver = new Day01Solver(reader);
 
-var solution = solver.Solve();
+var solution = solver.Solve(SolutionVariant.PartTwo);
 
 switch (solution)
 {

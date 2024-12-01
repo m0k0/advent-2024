@@ -64,13 +64,39 @@ namespace AdventOfCode.Y2K24.Day01
             
             var (leftList, rightList) = successResult.Value;
 
-
-            var result = SolvePart1(leftList, rightList);
-
-            return result;
+            return solutionVariant switch
+            {
+                SolutionVariant.PartOne => GetSimilarityByDistance(leftList, rightList),
+                SolutionVariant.PartTwo => GetSimilarityByOccurrence(leftList, rightList),
+                _ => Result.Fail("Unknown solution variant")
+            };
         }
 
-        Result SolvePart1(List<int> leftList, List<int> rightList)
+        Result GetSimilarityByOccurrence(List<int> leftList, List<int> rightList)
+        {
+            Dictionary<int, int> rightListCounts = [];
+            foreach (var rightNumber in rightList)
+            {
+                if (!rightListCounts.ContainsKey(rightNumber))
+                    rightListCounts[rightNumber] = 0;
+                
+                rightListCounts[rightNumber]++;
+            }
+
+            int scoreSum = 0;
+            foreach (var leftNumber in leftList)
+            {
+                var rightListCount = 0;
+                if (rightListCounts.ContainsKey(leftNumber))
+                    rightListCount = rightListCounts[leftNumber];
+
+                var score = leftNumber * rightListCount;
+                scoreSum += score;
+            }
+            
+            return Result.Ok(scoreSum.ToString());
+        }
+        Result GetSimilarityByDistance(List<int> leftList, List<int> rightList)
         {
             
             leftList.Sort();
