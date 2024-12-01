@@ -1,18 +1,43 @@
-﻿using AdventOfCode.Y2K24;
+﻿using System.Text;
+using System.Text.Json;
+using AdventOfCode.Y2K24;
 using AdventOfCode.Y2K24.Solvers;
 
-ConsoleElf.WriteIntro();
-
+const string optionsInputCachePath = "./options.cache.json";
+SolverOptions? options = null;
 var solverFactory = SolverFactory.Create()
     .Register<Day01Solver>(1);
 
 
-SolverOptions? options;
-do
+ConsoleElf.WriteIntro();
+
+var optionsJson = "";
+if (File.Exists(optionsInputCachePath))
 {
-    options = ConsoleElf.AskSolverOptions();
-    
-} while (options is null);
+    optionsJson = File.ReadAllText(optionsInputCachePath);
+    options = JsonSerializer.Deserialize<SolverOptions>(optionsJson);
+
+    if (options is not null)
+    {
+        ConsoleElf.Say($"Last time we tried {options.Variant} of day {options.Day}, using '{Path.GetFileName(options.InputFilePath)}'");
+        var reuseOptions = ConsoleElf.GetSelectionInput("Shall we pick up where we left off?",
+        new Dictionary<string,bool>(){
+            {"Yes", true},
+            {"No", false}
+        });
+        if (!reuseOptions)
+            options = null;
+    }
+}
+
+if (options is null)
+{
+    do
+    {
+        options = ConsoleElf.AskSolverOptions();
+
+    } while (options is null);
+}
 
 if (!solverFactory.HasSolverForDay(options.Day))
 {
@@ -37,6 +62,9 @@ if (solver is null)
     return;
 }
 
+// validation done, write options to cache
+optionsJson = JsonSerializer.Serialize(options);
+File.WriteAllText(optionsInputCachePath, optionsJson, Encoding.UTF8);
 
 var solution = solver.Solve(options.Variant);
 
