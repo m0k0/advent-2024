@@ -20,7 +20,7 @@ if (File.Exists(optionsInputCachePath))
 
     if (options is not null)
     {
-        ConsoleElf.Say($"Last time we tried {options.Variant} of day {options.Day}, using '{Path.GetFileName(options.InputFilePath)}'");
+        ConsoleElf.Say($"Last time we tried '{options.Variant}' of day {options.Day}, using '{Path.GetFileName(options.InputFilePath)}'");
         var reuseOptions = ConsoleElf.GetSelectionInput("Shall we pick up where we left off?",
         new Dictionary<string,bool>(){
             {"Yes", true},

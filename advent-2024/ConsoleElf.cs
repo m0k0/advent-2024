@@ -195,14 +195,14 @@ public static class ConsoleElf
             inputFiles
         );
         ConsoleElf.SayOk($"" +
-                         $"Alrighty! we'll be using input {Path.GetFileName(options.InputFilePath)}");
+                         $"Alrighty! we'll be using input '{Path.GetFileName(options.InputFilePath)}'");
 
 // ------ variant ------
         var variants = Enum.GetValues<SolutionVariant>()
             .ToDictionary(
                 e => e.ToString(), 
                 e => e);  
-        var variantName = ConsoleElf.GetSelectionInput(
+        options.Variant = ConsoleElf.GetSelectionInput(
             "Which variant do we need?",
             variants
         );
