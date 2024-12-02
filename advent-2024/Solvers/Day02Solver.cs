@@ -10,6 +10,7 @@ public class Day02Solver : ISolver
     }
     public Result Solve(SolutionVariant? variant = 0)
     {
+        var useDampener = variant == SolutionVariant.PartTwo;
         
         var line = _inputReader.ReadLine();
         var lineNumber = 0;
@@ -35,7 +36,7 @@ public class Day02Solver : ISolver
                 return Result.Fail(
                     $"Empty report on line: {lineNumber}");
             }
-            if (TestReportSafety(report))
+            if (TestReportSafety(report, useDampener))
             {
                 safeReportCount++;
             }
@@ -48,11 +49,12 @@ public class Day02Solver : ISolver
     }
 
     
-    private bool TestReportSafety(IEnumerable<int> report)
+    private bool TestReportSafety(IEnumerable<int> report, bool useDampener = false)
     {
         bool isSafe = true;
         int? lastNumber = null;
         bool? isAscending = null;
+        bool hasDampener = useDampener;
         foreach (var number in report)
         {
             if (lastNumber is null)
@@ -69,16 +71,30 @@ public class Day02Solver : ISolver
             if (isAscending.Value && lastNumber >= number ||
                 !isAscending.Value && lastNumber <= number)
             {
-                isSafe = false;
-                break;
+                if (hasDampener)
+                {
+                    hasDampener = false;
+                }
+                else
+                {
+                    isSafe = false;
+                    break;                    
+                }
             }
             
             // rule 2: adjacent number differ by at least one, at most three
             var difference = Math.Abs(number - lastNumber.Value);
             if (difference < 1 || difference > 3)
             {
-                isSafe = false;
-                break;
+                if (hasDampener)
+                {
+                    hasDampener = false;
+                }
+                else
+                {
+                    isSafe = false;
+                    break;                    
+                }
             }
             
             lastNumber = number;
