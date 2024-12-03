@@ -160,53 +160,95 @@ public static class ConsoleElf
         return options[displayOptions[selection - 1]];
     }
 
-    public static SolverOptions? AskSolverOptions()
+    public static SolverOptions? AskSolverOptions(SolverOptionsTemplate? optionsTemplate = null)
     {
-        
+
         var options = new SolverOptions();
-// ------ day ------
-        options.Day = ConsoleElf
-            .GetIntInput("Which day are we solving for?");
 
-        var zeroPaddedDay = options.Day < 10 ? $"0{options.Day}" : $"{options.Day}";
-        var inputPath = $"./Input/Day{zeroPaddedDay}";
+        if (optionsTemplate?.Day is null)
+        {
+            AskSolverDay(options);
+        }
+        else
+        {
+            options.Day = optionsTemplate.Day.Value;
+        }
         
-        ConsoleElf.SayOk($"Ok! So that's day {options.Day}");
-
-// ------ input file ------
-        if (!Directory.Exists(inputPath))
+        if (optionsTemplate is null || string.IsNullOrEmpty(optionsTemplate.InputFilePath))
         {
-            ConsoleElf.SayError("Snap! We don't have any input for this day yet!");
-            return null;
+            var zeroPaddedDay = options.Day < 10 ? $"0{options.Day}" : $"{options.Day}";
+            var inputPath = $"./Input/Day{zeroPaddedDay}";
+
+            if (!Directory.Exists(inputPath))
+            {
+                ConsoleElf.SayError("Snap! We don't have any input for this day yet!");
+                return null;
+            }
+            var inputFiles = Directory.EnumerateFiles(
+                    inputPath, "*.txt")
+                .ToDictionary(
+                    f => Path.GetFileName(f) ?? f,
+                    f => f);
+                
+            if (inputFiles.Count == 0)
+            {
+                ConsoleElf.SayError("Snap! We don't have any input for this day yet!");
+                return null;
+            }
+
+            options = AskSolverInputFile(options, inputFiles);
         }
-        var inputFiles = Directory.EnumerateFiles(
-                inputPath, "*.txt")
-            .ToDictionary(
-                f => Path.GetFileName(f) ?? f,
-                f => f);
-        if (inputFiles.Count == 0)
+        else
         {
-            ConsoleElf.SayError("Snap! We don't have any input for this day yet!");
-            return null;
+            options.InputFilePath = optionsTemplate.InputFilePath;
+        }
+        
+        if (optionsTemplate?.Variant is null)
+        {
+            var variants = Enum.GetValues<SolutionVariant>()
+                .ToDictionary(
+                    e => e.ToString(), 
+                    e => e);
+            options = AskSolverVariant(options, variants);
+            
+        }
+        else
+        {
+            options.Variant = optionsTemplate.Variant.Value;
         }
 
-        options.InputFilePath = ConsoleElf.GetSelectionInput(
-            "Which puzzle input are we using?",
-            inputFiles
-        );
-        ConsoleElf.SayOk($"" +
-                         $"Alrighty! we'll be using input '{Path.GetFileName(options.InputFilePath)}'");
+        return options;
+    }
 
-// ------ variant ------
-        var variants = Enum.GetValues<SolutionVariant>()
-            .ToDictionary(
-                e => e.ToString(), 
-                e => e);  
+    private static SolverOptions AskSolverVariant(SolverOptions options, Dictionary<string, SolutionVariant> variants)
+    {
         options.Variant = ConsoleElf.GetSelectionInput(
             "Which variant do we need?",
             variants
         );
         ConsoleElf.SayOk($"Sure! Solution for '{options.Variant}' coming up!");
+
+        return options;
+    }
+
+    private static SolverOptions AskSolverInputFile(SolverOptions options, Dictionary<string, string> inputFiles)
+    {
+        options.InputFilePath = ConsoleElf.GetSelectionInput(
+            "Which puzzle input are we using?",
+            inputFiles
+        );
+        ConsoleElf.SayOk(
+            $"Alrighty! we'll be using input '{Path.GetFileName(options.InputFilePath)}'");
+
+        return options;
+    }
+
+    private static SolverOptions AskSolverDay(SolverOptions options)
+    {
+        options.Day = ConsoleElf
+            .GetIntInput("Which day are we solving for?");
+
+        ConsoleElf.SayOk($"Ok! So that's day {options.Day}");
 
         return options;
     }
