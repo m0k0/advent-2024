@@ -9,7 +9,7 @@ SolverOptions? options = null;
 var solverFactory = SolverFactory.Create()
     .Register<Day01Solver>(1)
     .Register<Day02Solver>(2)
-    .Register<Day02Solver>(3);
+    .Register<Day03Solver>(3);
 
 
 ConsoleElf.WriteIntro();
