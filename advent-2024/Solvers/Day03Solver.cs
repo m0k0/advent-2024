@@ -69,6 +69,7 @@ public class Day03Solver : ISolver
             for (int i = 0; i < readCount; i++)
             {
                 var c = charBuffer[i];
+                totalCharCounter++;
 
                 if (c == '(' && commandBuffer.Count > minCommandLength) // start of function args
                 {
