@@ -64,8 +64,6 @@ public class Day03Solver : ISolver
         var totalCharCounter = 0;
         while (readCount > 0)
         {
-            totalCharCounter++;
-            
             for (int i = 0; i < readCount; i++)
             {
                 var c = charBuffer[i];
@@ -162,14 +160,25 @@ public class Day03Solver : ISolver
         {
             "mul"
         };
-        
+        if (variant == SolutionVariant.PartTwo)
+        {
+            availableCommands = new[]
+            {
+                "mul",
+                "do",
+                "don't"
+            };  
+        }
+
         var commands = ReadCommands(availableCommands);
+        //var allCommands = commands.ToList();
         var resultSum = 0;
+        var isCommandDisabled = false;
         foreach (var command in commands)
         {
             var commandResult = 0;
             
-            if (command.CommandText == "mul")
+            if (command.CommandText == "mul" && !isCommandDisabled)
             {
                 var product = 1;
                 for (var i = 0; i < command.Args.Count; i++)
@@ -181,6 +190,12 @@ public class Day03Solver : ISolver
                     product *= arg;
                 }
                 commandResult = product;
+            } else if (command.CommandText == "do")
+            {
+                isCommandDisabled = false;
+            } else if (command.CommandText == "don't")
+            {
+                isCommandDisabled = true;
             }
 
             resultSum += commandResult;
