@@ -1,5 +1,6 @@
 namespace AdventOfCode.Y2K24.Solvers
 {
+    [SolverFor(day: 1)]
     public class Day01Solver : ISolver
     {
         private readonly TextReader _inputReader;
@@ -48,7 +49,12 @@ namespace AdventOfCode.Y2K24.Solvers
             return Result.Ok(
                 (leftList, rightList));
         }
-        
+
+        public bool CanSolve(int day)
+        {
+            return day == 1;
+        }
+
         public Result Solve(SolutionVariant? solutionVariant = 0)
         {
             var input = ParseInput();
@@ -116,4 +122,5 @@ namespace AdventOfCode.Y2K24.Solvers
             return Result.Ok(distanceSum.ToString());
         }
     }
+
 }

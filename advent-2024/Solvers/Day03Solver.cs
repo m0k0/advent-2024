@@ -1,5 +1,6 @@
 namespace AdventOfCode.Y2K24.Solvers;
 
+[SolverFor(day: 3)]
 public class Day03Solver : ISolver
 {
     class Command(string command)

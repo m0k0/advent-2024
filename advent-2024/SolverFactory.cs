@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace AdventOfCode.Y2K24;
 
 public class SolverFactory
@@ -9,10 +11,28 @@ public class SolverFactory
     public SolverFactory Register<TSolver>(int dayNumber)
         where TSolver : ISolver
     {
-        _registeredSolvers[dayNumber] = reader => 
-            Activator.CreateInstance(typeof(TSolver), args: reader) as ISolver;
-        
+        Register(typeof(TSolver),dayNumber);
         return this;
+    }
+    public SolverFactory RegisterSolvers()
+    {
+        var solvers = GetSolverTypes();
+        foreach (var solver in solvers)
+        {
+            var solverForAttribute = solver.GetCustomAttribute<SolverForAttribute>();
+            if (solverForAttribute is null)
+                continue;
+            
+            Register(solver, solverForAttribute.Day);
+        }
+
+        return this;
+    }
+
+    private void Register(Type solverType, int dayNumber)
+    {
+        _registeredSolvers[dayNumber] = reader => 
+            Activator.CreateInstance(solverType, args: reader) as ISolver;
     }
 
     public bool HasSolverForDay(int dayNumber)
@@ -20,6 +40,17 @@ public class SolverFactory
         return _registeredSolvers.ContainsKey(dayNumber);
     }
 
+    public IEnumerable<Type> GetSolverTypes()
+    {
+        return Assembly.GetExecutingAssembly()
+            .GetTypes()
+            .Where(t =>
+                t.IsClass &&
+                !t.IsAbstract &&
+                typeof(ISolver).IsAssignableFrom(t));
+    }
+
+   
     public ISolver? GetSolver(int dayNumber, TextReader input)
     {
         if (!HasSolverForDay(dayNumber))

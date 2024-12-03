@@ -1,5 +1,6 @@
 namespace AdventOfCode.Y2K24.Solvers;
 
+[SolverFor(day: 2)]
 public class Day02Solver : ISolver
 {
     private readonly TextReader _inputReader;
