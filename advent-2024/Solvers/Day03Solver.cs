@@ -6,6 +6,7 @@ public class Day03Solver : ISolver
     {
         public string CommandText { get; set; } = command;
         public List<string> Args { get; set; } = [];
+        public int Location { get; set; } = -1;
     }
     
     private readonly TextReader _inputReader;
@@ -15,14 +16,14 @@ public class Day03Solver : ISolver
     }
 
 
-    string? ExtractCommand(string buffer, string[] availableCommands)
+    string? ExtractCommandText(Span<char> buffer, string[] availableCommands)
     {
         var potentialMatches = availableCommands.ToList();
  
         // walk buffer backwards
-        for (var i = buffer.Length; i > 0; i--)
+        for (var i = 1 ; i <= buffer.Length; i++)
         {
-            var bufferChar = buffer[i];
+            var bufferChar = buffer[^i];
             for (var ci =0; ci < potentialMatches.Count; ci++)
             {
                 var command = potentialMatches[ci];
@@ -32,7 +33,7 @@ public class Day03Solver : ISolver
                     potentialMatches.RemoveAt(ci); // command doesn't match
                     continue;
                 }
-                if (ci == 0) // match
+                if (command.Length - i == 0) // match
                 {
                     return command;
                 }
@@ -41,106 +42,153 @@ public class Day03Solver : ISolver
             if (potentialMatches.Count == 0)
                 break;
         }
-        return String.Empty;
+        return string.Empty;
     }
-    public Result Solve(SolutionVariant? variant)
+
+    IEnumerable<Command> ReadCommands(string[] availableCommands)
     {
         const int BUFFER_SIZE = 1024;
         char[] charBuffer = new char[BUFFER_SIZE];
-        List<Command> commands = new();
+        
         List<Char> commandBuffer = new();
         List<Char> argBuffer = new();
-
-        string[] availableCommands = new[]
-        {
-            "mul"
-        };
+        
+        var minCommandLength = availableCommands.Min(c => c.Length);
+        var maxCommandLength = availableCommands.Max(c => c.Length);
 
         Command? currentCommand = null;
         var isInsideArgs = false;
         var isReadingArg = false;
-        
+
         var readCount = _inputReader.Read(charBuffer, 0, BUFFER_SIZE);
-        while (readCount > -1)
+        var totalCharCounter = 0;
+        while (readCount > 0)
         {
+            totalCharCounter++;
             
             for (int i = 0; i < readCount; i++)
             {
                 var c = charBuffer[i];
 
-                
-                
-                if (c == '(') // start of function args
+                if (c == '(' && commandBuffer.Count > minCommandLength) // start of function args
                 {
-                    var commandText = commandBuffer.ToString();
+                    
+                    var commandText = ExtractCommandText(
+                        commandBuffer.ToArray(), 
+                        availableCommands);
+
                     if (string.IsNullOrEmpty(commandText))
-                        continue; // empty command
-                    
-                    
-                    commandText = ExtractCommand(commandText, availableCommands);
-                    
+                    {
+                        // unknown command
+                        DropCommand();
+                        continue;
+                    }
+
                     currentCommand = new Command(commandText);
-                    isInsideArgs = true;
-                    commandBuffer.Clear();
+                    currentCommand.Location = totalCharCounter;
+                    MoveInsideCommand();
+                    
                     continue;
                 }
 
                 if (isInsideArgs && currentCommand is not null)
                 {
+
                     if (char.IsDigit(c))
                     {
-                        argBuffer.Add(c);
-                        isReadingArg = true;
+                        MoveInsideArg();
+
                     } else if (c == ',' && isReadingArg) // end of current function arg
                     {
-                        currentCommand.Args.Add(argBuffer.ToString());
-                        argBuffer.Clear();
+                        CommitArg();
+                        continue;
                     }
                     else if (c == ')' && isReadingArg) // end of function args 
                     {
-                        currentCommand.Args.Add(argBuffer.ToString());
-                        argBuffer.Clear();
-                        commands.Add(currentCommand);
-                        currentCommand = null;
-                        isInsideArgs = false;
+                        CommitArg();
+                        yield return currentCommand;
+                        CommitCommand();
+                        continue;
                     }
                     else // invalid char, drop command
                     {
-                        argBuffer.Clear();
-                        currentCommand = null;
-                        isInsideArgs = false;
+                        DropCommand();
+                        continue;
                     }
-
+                    argBuffer.Add(c);
                 }
                 
-                
+                commandBuffer.Add(c);
             }
 
 
 
             readCount = _inputReader.Read(charBuffer, 0, BUFFER_SIZE);
-            continue;
-            var buffer = charBuffer.ToString();
-
-            if (string.IsNullOrEmpty(buffer))
-            {
-                continue;
-            }
-
-            var foundCommand = "";
-            foreach (var command in availableCommands)
-            {
-                var commandIndex = buffer.IndexOf(command, StringComparison.Ordinal);
-                if (commandIndex > -1)
-                {
-                    foundCommand = command;
-                }
-            }
-            
-            readCount = _inputReader.Read(charBuffer, 0, BUFFER_SIZE);
-        } 
+        }
         
         
-        return Result.Fail("No solution yet");
+        void MoveInsideCommand()
+        {
+            isInsideArgs = true;
+            commandBuffer.Clear();
+        }
+        void MoveInsideArg()
+        {
+            isReadingArg = true;
+        }
+        void CommitArg()
+        {
+            var arg = string.Join(string.Empty, argBuffer);
+            currentCommand.Args.Add(arg);
+            argBuffer.Clear();
+        }
+
+        void CommitCommand()
+        {
+            currentCommand = null;
+            isInsideArgs = false;
+        }
+        void DropCommand()
+        {
+            argBuffer.Clear();
+            currentCommand = null;
+            isInsideArgs = false;
+        }
     }
+    public Result Solve(SolutionVariant? variant)
+    {
+        string[] availableCommands = new[]
+        {
+            "mul"
+        };
+        
+        var commands = ReadCommands(availableCommands);
+        var resultSum = 0;
+        foreach (var command in commands)
+        {
+            var commandResult = 0;
+            
+            if (command.CommandText == "mul")
+            {
+                var product = 1;
+                for (var i = 0; i < command.Args.Count; i++)
+                {
+                    if (!int.TryParse(command.Args[i], out int arg))
+                        Result.Fail($"Failed to parse argument {i + 1
+                            } of {command.CommandText
+                            } at position {command.Location}");
+                    product *= arg;
+                }
+                commandResult = product;
+            }
+
+            resultSum += commandResult;
+        }
+        
+        
+        return Result.Ok(resultSum.ToString());
+
+
+    }
+
 }
