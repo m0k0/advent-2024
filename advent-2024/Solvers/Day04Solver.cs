@@ -14,50 +14,68 @@ public class Day04Solver : ISolver
     public Result Solve(SolutionVariant? variant)
     {
         const string searchWord = "XMAS";
-        Queue<char[]> lineBuffer = [];
+        var reversedSearchWord = new string(searchWord.Reverse().ToArray());
+        LinkedList<char[]> lineBuffer = [];
+        
         
         var matchCount = 0;
         var line = _inputReader.ReadLine();
+        var yPos = -1;
         while (!string.IsNullOrEmpty(line))
         {
-            var lineChars = line.ToCharArray();
-            
-            lineBuffer.Enqueue(lineChars);
+            var currentLine= lineBuffer.AddLast(line.ToCharArray());
+            yPos++;
             
             if (lineBuffer.Count > searchWord.Length)
             {
                 // shave off first line, no longer needed
-                _ = lineBuffer.Dequeue(); 
+                lineBuffer.RemoveFirst();
             }
 
             List<char> horizontalBuffer = [];
             List<char> horizontalReverseBuffer = [];
             
-            for (var i = 0; i < lineChars.Length; i++)
+            for (var xPos = 0; xPos < currentLine.Value.Length; xPos++)
             {
-                var c = line[i];
+                var c = line[xPos];
                 
                 // horizontal search
                 if (c == searchWord[0] || c == searchWord[^1])
                 {
                     
-                    // forward
-                    if (IsHorizontalMatchFromPosition(searchWord, i, lineChars))
+                    // forwards
+                    if (IsHorizontalMatchFromPosition(searchWord, xPos, currentLine.Value))
                         matchCount++;
                     
-                    // reverse
-                    if (IsHorizontalMatchFromPosition(searchWord, i, lineChars, 
-                            reverseSearch: true))
+                    // forwards reverse
+                    if (IsHorizontalMatchFromPosition(reversedSearchWord, xPos, currentLine.Value))
                         matchCount++;
                 }
                 
+                // vertical match
                 if (lineBuffer.Count >= searchWord.Length)
                 {
-                    // vertical / diagonal search
-                    // if enough lines are available
                     
-                    // search from bottom up
-                    // c == first or last char 
+                    // above
+                    if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine))
+                        matchCount++;
+                    // above reverse
+                    if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine))
+                        matchCount++;
+                    
+                    // diagonal forwards
+                    if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine, 1))
+                        matchCount++;
+                    // diagonal forwards reverse
+                    if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine, 1))
+                        matchCount++;
+                    
+                    // diagonal backwards
+                    if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine,-1))
+                        matchCount++;
+                    // diagonal backwards reverse
+                    if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine,-1))
+                        matchCount++;
                 }
                 
             }
@@ -69,6 +87,37 @@ public class Day04Solver : ISolver
         
         
         return Result.Ok(matchCount.ToString());
+    }
+
+    private static bool IsVerticalMatchFromPosition(
+        string searchWord,
+        int currentPosition,
+        LinkedListNode<char[]> fromLine,
+        int xVector = 0)
+    {
+        var currentLine = fromLine;
+        for (var wi = 0; wi < searchWord.Length; wi++)
+        {
+            if (currentLine is null)
+                return false;
+            
+            var charIndex = currentPosition + (wi * xVector);
+            if (charIndex < 0 || charIndex >= currentLine.Value.Length)
+            {
+                // out of line bounds
+                return false;
+            }
+
+            var foundChar = currentLine.Value[charIndex];
+            if (foundChar != searchWord[wi])
+            {
+                // not a full match
+                return false;
+            }
+            currentLine = currentLine.Previous;
+                
+        }
+        return true;
     }
 
     private static bool IsHorizontalMatchFromPosition(
