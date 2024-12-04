@@ -14,9 +14,7 @@ public class Day04Solver : ISolver
     public Result Solve(SolutionVariant? variant)
     {
         const string searchWord = "XMAS";
-        var reversedSearchWord = new string(searchWord.Reverse().ToArray());
         LinkedList<char[]> lineBuffer = [];
-        
         
         var matchCount = 0;
         var line = _inputReader.ReadLine();
@@ -31,53 +29,12 @@ public class Day04Solver : ISolver
                 // shave off first line, no longer needed
                 lineBuffer.RemoveFirst();
             }
-
-            List<char> horizontalBuffer = [];
-            List<char> horizontalReverseBuffer = [];
             
             for (var xPos = 0; xPos < currentLine.Value.Length; xPos++)
             {
                 var c = line[xPos];
-                
-                // horizontal search
-                if (c == searchWord[0] || c == searchWord[^1])
-                {
-                    
-                    // forwards
-                    if (IsHorizontalMatchFromPosition(searchWord, xPos, currentLine.Value))
-                        matchCount++;
-                    
-                    // forwards reverse
-                    if (IsHorizontalMatchFromPosition(reversedSearchWord, xPos, currentLine.Value))
-                        matchCount++;
-                }
-                
-                // vertical match
-                if (lineBuffer.Count >= searchWord.Length)
-                {
-                    
-                    // above
-                    if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine))
-                        matchCount++;
-                    // above reverse
-                    if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine))
-                        matchCount++;
-                    
-                    // diagonal forwards
-                    if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine, 1))
-                        matchCount++;
-                    // diagonal forwards reverse
-                    if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine, 1))
-                        matchCount++;
-                    
-                    // diagonal backwards
-                    if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine,-1))
-                        matchCount++;
-                    // diagonal backwards reverse
-                    if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine,-1))
-                        matchCount++;
-                }
-                
+
+                matchCount += CountWordMatches(c, searchWord, xPos, currentLine);
             }
             
             line = _inputReader.ReadLine();
@@ -87,6 +44,60 @@ public class Day04Solver : ISolver
         
         
         return Result.Ok(matchCount.ToString());
+    }
+
+    private static int CountWordMatches(
+        char c, 
+        string searchWord, 
+        int xPos, 
+        LinkedListNode<char[]> currentLine)
+    {
+        
+        var reversedSearchWord = new string(searchWord.Reverse().ToArray());
+        var matchCount = 0;
+        
+        if (currentLine?.List is null) 
+            return 0;
+        if (!(c == searchWord[0] || c == searchWord[^1]))
+            return 0;
+    
+        
+        // horizontal forwards
+        if (IsHorizontalMatchFromPosition(searchWord, xPos, currentLine.Value))
+            matchCount++;
+
+        // horizontal forwards reverse
+        if (IsHorizontalMatchFromPosition(reversedSearchWord, xPos, currentLine.Value))
+            matchCount++;
+
+
+        // vertical 
+        if (currentLine.List.Count >= searchWord.Length)
+        {
+
+            // above
+            if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine))
+                matchCount++;
+            // above reverse
+            if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine))
+                matchCount++;
+
+            // diagonal forwards
+            if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine, 1))
+                matchCount++;
+            // diagonal forwards reverse
+            if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine, 1))
+                matchCount++;
+
+            // diagonal backwards
+            if (IsVerticalMatchFromPosition(searchWord, xPos, currentLine, -1))
+                matchCount++;
+            // diagonal backwards reverse
+            if (IsVerticalMatchFromPosition(reversedSearchWord, xPos, currentLine, -1))
+                matchCount++;
+        }
+        
+        return matchCount;
     }
 
     private static bool IsVerticalMatchFromPosition(
