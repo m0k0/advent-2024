@@ -112,20 +112,36 @@ public class Day06Solver : ISolver
         
         foreach (var guard in _guards)
         {
-            var status = MoveGuard(guard);
+            var status = MoveGuard(guard, _obstacleMap);
+            
+            var visitedPositions = guard.PastSelves
+                .Select(g => g.Position)
+                .Distinct();
             
             if (variant == SolutionVariant.PartOne)
             {
-                var uniquePositions = guard.PastSelves
-                    .Select(g => g.Position)
-                    .Distinct();
-
-                result += uniquePositions.Count();
-            }
-
-            if (variant == SolutionVariant.PartTwo)
-            {
+                result += visitedPositions.Count();
                 
+            } else if (variant == SolutionVariant.PartTwo)
+            {
+                var startingSelf = guard.PastSelves.FirstOrDefault();
+                if (startingSelf is null)
+                    continue; // guard hasn't moved
+
+                var scenarioCount = 0;
+                foreach (var position in visitedPositions.Skip(1))
+                {
+                    scenarioCount++;
+                    bool[][] parallelObstacleMap = CopyMap(_obstacleMap);
+                    parallelObstacleMap[position.Y][position.X] = true;
+                    
+                    var parallelGuard = CloneGuard(startingSelf);
+                    var parallelGuardStatus = MoveGuard(parallelGuard, parallelObstacleMap);
+                    if (parallelGuardStatus == MovementStatus.GuardIsStuck)
+                    {
+                        result++;
+                    }
+                }
             }
         }
     
@@ -139,7 +155,7 @@ public class Day06Solver : ISolver
         GuardHasLeft,
         GuardIsStuck
     }
-    private MovementStatus MoveGuard(Guard guard)
+    private MovementStatus MoveGuard(Guard guard, bool[][] obstacleMap)
     {
         var status = MovementStatus.Moving;
         
@@ -164,7 +180,7 @@ public class Day06Solver : ISolver
                 continue;
             }
 
-            var encounteredObstacle = _obstacleMap[newPosition.Y][newPosition.X];
+            var encounteredObstacle = obstacleMap[newPosition.Y][newPosition.X];
             if (encounteredObstacle)
             {
                 guard.DirectionDegrees += 90;
@@ -204,6 +220,17 @@ public class Day06Solver : ISolver
                 return true;
         }
         return false;
+    }
+
+    bool[][] CopyMap(bool[][] map)
+    {
+        var copy = new bool[map.Length][];
+        for (var i = 0; i < map.Length; i++)
+        {
+            copy[i] = new bool[map[i].Length];
+            map[i].CopyTo(copy[i],0);
+        }
+        return copy;
     }
     Point GetMovementVector(int rotationDegrees)
     {
