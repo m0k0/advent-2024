@@ -3,10 +3,18 @@ namespace AdventOfCode.Y2K24.Solvers;
 [SolverFor(day: 7)]
 public class Day07Solver : ISolver
 {
-    class Equation(int value)
+    class Equation(long value)
     {
-        public int Value { get; } = value;
+        public long Value { get; } = value;
         public List<int> Arguments { get; } = [];
+    }
+
+    enum Operator
+    {
+        Add,
+        Subtract,
+        Multiply,
+        Divide,
     }
     
     
@@ -52,7 +60,7 @@ public class Day07Solver : ISolver
         if (equationSides.Length != 2)
             return Result.Fail("Unable to find sides of equation");
         
-        if (!int.TryParse(equationSides[0], out int value))
+        if (!long.TryParse(equationSides[0], out long value))
             return Result.Fail("Failed to parse equation value");
 
         var equation = new Equation(value);
@@ -75,9 +83,10 @@ public class Day07Solver : ISolver
 
     }
 
+    
     public Result Solve(SolutionVariant? variant)
     {
-        Equation[] equations;
+        Equation[] equations = [];
         var equationResult = ReadEquations();
         if (equationResult is FailureResult failureResult)
         {
@@ -86,9 +95,94 @@ public class Day07Solver : ISolver
         {
             equations = successResult.Value ?? [];
         }
+
+        Operator[] availableOperators =
+        [
+            Operator.Add,
+            Operator.Multiply
+        ];
+
         
         
+        long validEquationSum = 0;
+        foreach (var equation in equations)
+        {
+            var hasSolution = TestEquation(equation, availableOperators);
+            if (!hasSolution)
+                continue;
+            
+            validEquationSum += equation.Value;
+        }
         
-        return Result.Fail("No solution found");
+        
+        return Result.Ok(validEquationSum.ToString());
+    }
+    
+    
+    IEnumerable<Operator[]> GetOperatorSequences(
+        Operator[] availableOperators, 
+        Operator[]? currentSequence = null, 
+        int operationCount = 0)
+    {
+        
+        if (currentSequence is null)
+            currentSequence = [];
+        
+        foreach (var op in availableOperators)
+        {
+            var newSequence = new List<Operator>(currentSequence);
+            newSequence.Add(op);
+            var newSequenceArray = newSequence.ToArray();
+            if (operationCount <= 1)
+            {
+                yield return newSequenceArray;
+            } else {    
+            
+                var children =  GetOperatorSequences(
+                    availableOperators,
+                    newSequenceArray, 
+                    operationCount - 1);
+                foreach (var child in children)
+                    yield return child;
+            }
+        }
+        
+    }
+    private bool TestEquation(Equation equation, Operator[] availableOperators)
+    {
+        var opSequences = GetOperatorSequences(
+            availableOperators, 
+            operationCount: equation.Arguments.Count -1);
+
+        foreach (var opSequence in opSequences)
+        {
+            long currentValue = equation.Arguments[0];
+            for (var i = 0; i < opSequence.Length; i++)
+            {
+                var op = opSequence[i];
+                currentValue = PerformOperation(op,
+                    currentValue,
+                    equation.Arguments[i + 1]);
+            }
+            if (currentValue == equation.Value)
+                return true;
+        }
+        
+        return false;
+    }
+    
+    
+
+    private long PerformOperation(Operator op, long leftOperand, int rightOperand)
+    {
+        
+        return op switch
+        {
+            Operator.Add => leftOperand + rightOperand,
+            Operator.Subtract => leftOperand - rightOperand,
+            Operator.Multiply => leftOperand * rightOperand,
+            Operator.Divide => leftOperand / rightOperand,
+            _ => throw new NotImplementedException()
+        };
     }
 }
