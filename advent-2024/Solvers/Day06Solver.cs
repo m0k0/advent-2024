@@ -128,20 +128,29 @@ public class Day06Solver : ISolver
                 if (startingSelf is null)
                     continue; // guard hasn't moved
 
-                var scenarioCount = 0;
+
+                List<Task<bool>> scenarioTasks = [];
+                var scenariosExecuted = 0;
                 foreach (var position in visitedPositions.Skip(1))
                 {
-                    scenarioCount++;
-                    bool[][] parallelObstacleMap = CopyMap(_obstacleMap);
-                    parallelObstacleMap[position.Y][position.X] = true;
-                    
-                    var parallelGuard = CloneGuard(startingSelf);
-                    var parallelGuardStatus = MoveGuard(parallelGuard, parallelObstacleMap);
-                    if (parallelGuardStatus == MovementStatus.GuardIsStuck)
+                    var scenarioTask = Task.Run(() =>
                     {
-                        result++;
-                    }
+                        bool[][] parallelObstacleMap = CopyMap(_obstacleMap);
+                        parallelObstacleMap[position.Y][position.X] = true;
+
+                        var parallelGuard = CloneGuard(startingSelf);
+                        var parallelGuardStatus = MoveGuard(parallelGuard, parallelObstacleMap);
+
+                        scenariosExecuted++;
+                        return parallelGuardStatus == MovementStatus.GuardIsStuck;
+
+                    });
+                    scenarioTasks.Add(scenarioTask);
                 }
+
+                var completionTask = Task.WhenAll(scenarioTasks.ToArray());
+                result += completionTask.Result.Count(r=> r);
+
             }
         }
     
