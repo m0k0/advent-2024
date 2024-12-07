@@ -10,6 +10,16 @@ public class Day06Solver : ISolver
 
         public Point Position { get; set; } = new(xPosition, yPosition);
         public int DirectionDegrees = 0;
+        public List<Guard> PastSelves { get; } = [];
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not Guard other)
+                return false;
+            
+            return Position.Equals(other.Position) && 
+                   DirectionDegrees % 360 == other.DirectionDegrees % 360;
+        }
     }
     private readonly TextReader _inputReader;
     private readonly List<Guard> _guards = []; 
@@ -97,61 +107,104 @@ public class Day06Solver : ISolver
         {
             return Result.Fail("No map loaded");
         }
-        
-        var trailMap =MoveGuards();
 
-        var trailCount = trailMap.Sum(y => y.Count(x => x) );
-
-        return Result.Ok(trailCount.ToString());
-    }
-
-    private bool[][] MoveGuards()
-    {
-        bool[][] trailMap = new bool[_obstacleMap.Length][];
-        for (var i = 0; i < trailMap.Length; i++)
-        {
-            trailMap[i] = new bool[_obstacleMap[i].Length];
-        }
+        var result = 0;
         
         foreach (var guard in _guards)
         {
-            var guardIsInside = true;
-            while (guardIsInside)
+            var status = MoveGuard(guard);
+            
+            if (variant == SolutionVariant.PartOne)
             {
-                // mark trail
-                trailMap[guard.Position.Y][guard.Position.X] = true;
-                
-                var movementVector = GetMovementVector(guard.DirectionDegrees);
-                
-                var newPosition = new Point(
-                    guard.Position.X + movementVector.X,
-                    guard.Position.Y + movementVector.Y);
-                
-                if (newPosition.X < 0 || newPosition.X >= _mapSize.Width ||
-                    newPosition.Y < 0 || newPosition.Y >= _mapSize.Height)
-                {
-                    // guard has left
-                    guardIsInside = false;
-                    continue;
-                }
+                var uniquePositions = guard.PastSelves
+                    .Select(g => g.Position)
+                    .Distinct();
 
-                var encounteredObstacle = _obstacleMap[newPosition.Y][newPosition.X];
-                if (encounteredObstacle)
-                {
-                    guard.DirectionDegrees += 90;
-                    continue;
-                }
-                
-                // move
-                guard.Position = newPosition;
+                result += uniquePositions.Count();
             }
-            
-            
-        }
 
-        return trailMap;
+            if (variant == SolutionVariant.PartTwo)
+            {
+                
+            }
+        }
+    
+
+        return Result.Ok(result.ToString());
     }
 
+    enum MovementStatus
+    {
+        Moving,
+        GuardHasLeft,
+        GuardIsStuck
+    }
+    private MovementStatus MoveGuard(Guard guard)
+    {
+        var status = MovementStatus.Moving;
+        
+    
+
+        while (status == MovementStatus.Moving)
+        {
+            // record history
+            guard.PastSelves.Add(
+                CloneGuard(guard));
+           
+            var movementVector = GetMovementVector(guard.DirectionDegrees);
+            
+            var newPosition = new Point(
+                guard.Position.X + movementVector.X,
+                guard.Position.Y + movementVector.Y);
+            
+            if (!IsInsideMap(newPosition))
+            {
+                // guard has left
+                status = MovementStatus.GuardHasLeft;
+                continue;
+            }
+
+            var encounteredObstacle = _obstacleMap[newPosition.Y][newPosition.X];
+            if (encounteredObstacle)
+            {
+                guard.DirectionDegrees += 90;
+                continue;
+            }
+            
+            // move
+            guard.Position = newPosition;
+                            
+            if (HasBeenHereBefore(guard))
+            {
+                status = MovementStatus.GuardIsStuck;
+            }
+        }
+
+        return status;
+    }
+
+    Guard CloneGuard(Guard guard)
+    {
+        return new Guard(guard.Position.X, guard.Position.Y)
+        {
+            DirectionDegrees = guard.DirectionDegrees,
+        };
+    }
+
+    bool IsInsideMap(Point position)
+    {
+        return !(position.X < 0 || position.X >= _mapSize.Width ||
+                 position.Y < 0 || position.Y >= _mapSize.Height);
+    }
+    bool HasBeenHereBefore(Guard guard)
+    {
+        foreach (var pastSelf in guard.PastSelves)
+        {
+            if (pastSelf.Equals(guard))
+                return true;
+        }
+        return false;
+    }
     Point GetMovementVector(int rotationDegrees)
     {
         var rotationRads = rotationDegrees * Math.PI / 180;
