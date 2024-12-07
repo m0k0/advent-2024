@@ -10,8 +10,16 @@ public class Day05Solver: ISolver
         public List<int> MustBeAfter { get; } = [];
     }
 
+    class DependencyTreeNode(int value)
+    {
+        public int Value { get; } = value;
+        public DependencyTreeNode? Parent { get; set; }
+        public DependencyTreeNode? Left { get; set; }
+        public DependencyTreeNode? Right { get; set; }
+    }
+
     private readonly Dictionary<int, RuleSet> _ruleSets = [];
-    private readonly List<List<int>> _updateSequences = [];
+    private readonly List<int[]> _updateSequences = [];
     private readonly TextReader _inputReader;
     
     public Day05Solver(TextReader inputReader)
@@ -75,13 +83,68 @@ public class Day05Solver: ISolver
                 updateSequence.Add(updatePartNumber);
             }
             
-            _updateSequences.Add(updateSequence);
+            _updateSequences.Add(updateSequence.ToArray());
             
             line = _inputReader.ReadLine();
         }
         
         return Result.Ok(true);
     }
+
+    private DependencyTreeNode? GetDependencyTree(IEnumerable<int> values)
+    {
+
+        DependencyTreeNode? topNode = null;
+        
+        foreach (var updatePartNumber in values)
+        {
+            if (topNode is null)
+            {
+                topNode = new DependencyTreeNode(updatePartNumber);
+                continue;
+            }
+            var ruleSet = _ruleSets[updatePartNumber];
+            var node = new DependencyTreeNode(updatePartNumber);
+            
+            // traverse tree
+            DependencyTreeNode lastNode = topNode;
+            while (true)
+            {
+                if (ruleSet.MustBeBefore.Contains(lastNode.Value))
+                {
+                    if (lastNode.Left is not null)
+                    {
+                        // dive
+                        lastNode = lastNode.Left;
+                        continue;
+                    }
+
+                    lastNode.Left = node;
+                    break;
+
+                }
+                else if (ruleSet.MustBeAfter.Contains(lastNode.Value))
+                {
+                    if (lastNode.Right is not null)
+                    {
+                        // dive
+                        lastNode = lastNode.Right;
+                        continue;
+                    }
+                    lastNode.Right = node;
+                    break;
+                }
+                
+                break; // not listed, so ignore
+            }
+
+        }
+        
+        return topNode;
+    
+    }
+    
+    
     public Result Solve(SolutionVariant? variant)
     {
         var parseResult = ParseInput();
@@ -91,45 +154,85 @@ public class Day05Solver: ISolver
         }
 
         var middleSum = 0;
-        foreach (var updateSequence in _updateSequences)
+        for (var i = 0; i < _updateSequences.Count; i++)
         {
-            var isValid = TestUpdateSequence(updateSequence);
-            if (!isValid)
-                continue;
+            var updateSequence = _updateSequences[i];
             
-            var middlePart = GetMiddlePart(updateSequence); 
+            var isValid = TestUpdateSequence(updateSequence);
+            if (variant == SolutionVariant.PartOne)
+            {
+                if (!isValid)
+                    continue;
+                
+            } else if (variant == SolutionVariant.PartTwo)
+            {
+                if (isValid)
+                    continue;
+                updateSequence = SortSequence(updateSequence);
+            } else
+            {
+                continue;
+            }
+            
+            var middlePart = GetMiddlePart(updateSequence);  
             middleSum += middlePart;
         }
         
         return Result.Ok(middleSum.ToString());
     }
 
-    private int GetMiddlePart(List<int> updateSequence)
+    private int GetMiddlePart(int[] updateSequence)
     {
-        var middleIndex = (int)Math.Floor(updateSequence.Count / 2d);
+        var middleIndex = (int)Math.Floor(updateSequence.Length / 2d);
         return updateSequence[middleIndex];
     }
-    private bool TestUpdateSequence(List<int> updateSequence)
+
+    private int[] SortSequence(int[] updateSequence)
     {
-        for(var i = 0; i < updateSequence.Count; i++)
+        var topNode = GetDependencyTree(updateSequence);
+        
+        // collapse tree
+        List<int> GetNodeResult(DependencyTreeNode? node)
+        {
+            var nodeResult = new List<int>();
+            if (node is null)
+                return nodeResult;
+
+            if (node.Left is not null)
+            {
+                nodeResult.AddRange(GetNodeResult(node.Left));
+            }
+            nodeResult.Add(node.Value);
+            if (node.Right is not null)
+            {
+                nodeResult.AddRange(GetNodeResult(node.Right));
+            }
+            return nodeResult;
+        }
+        var rankedResult = GetNodeResult(topNode);
+                
+        return rankedResult.ToArray();
+    }
+    private bool TestUpdateSequence(int[] updateSequence)
+    {
+        for(var i = 0; i < updateSequence.Length; i++)
         {
             var updatePart = updateSequence[i];
                 
             if (!_ruleSets.TryGetValue(updatePart, out var ruleSet))
                 continue; // no rules, skip
                 
-            var obeysRuleSet = TestRuleSet(updatePart, updateSequence, ruleSet);
+            var obeysRuleSet = TestRuleSet(i, updateSequence, ruleSet);
             if (!obeysRuleSet)
                 return false;
         }
         return true;
     }
 
-    private static bool TestRuleSet(int subject, List<int> updateSequence, RuleSet ruleSet)
+    private static bool TestRuleSet(int subjectIndex, int[] updateSequence, RuleSet ruleSet)
     {
-        var i = updateSequence.IndexOf(subject);
         // test numbers appearing before
-        for (var i2 = i - 0; i2 >= 0; i2--)
+        for (var i2 = subjectIndex - 0; i2 >= 0; i2--)
         {
             var comparisonUpdatePart = updateSequence[i2];
             if (ruleSet.MustBeBefore.Contains(comparisonUpdatePart))
@@ -139,7 +242,7 @@ public class Day05Solver: ISolver
         }
 
         // test numbers appearing after
-        for (var i2 = i + 1; i2 < updateSequence.Count; i2++)
+        for (var i2 = subjectIndex + 1; i2 < updateSequence.Length; i2++)
         {
             var comparisonUpdatePart = updateSequence[i2];
             if (ruleSet.MustBeAfter.Contains(comparisonUpdatePart))
