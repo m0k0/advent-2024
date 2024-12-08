@@ -6,7 +6,7 @@ public class Day07Solver : ISolver
     class Equation(long value)
     {
         public long Value { get; } = value;
-        public List<int> Arguments { get; } = [];
+        public List<long> Arguments { get; } = [];
     }
 
     interface IOperator
@@ -85,7 +85,7 @@ public class Day07Solver : ISolver
         if (equationSides.Length != 2)
             return Result.Fail("Unable to find sides of equation");
         
-        if (!long.TryParse(equationSides[0], out long value))
+        if (!long.TryParse(equationSides[0], out var value))
             return Result.Fail("Failed to parse equation value");
 
         var equation = new Equation(value);
@@ -98,7 +98,7 @@ public class Day07Solver : ISolver
         {
             var arg = args[i];
             
-            if (!int.TryParse(arg, out int argValue))
+            if (!long.TryParse(arg, out var argValue))
                 return Result.Fail($"Failed to parse value of argument {i+1}");
             
             equation.Arguments.Add(argValue);
@@ -184,21 +184,69 @@ public class Day07Solver : ISolver
 
         foreach (var opSequence in opSequences)
         {
-            long currentValue = equation.Arguments[0];
-            for (var i = 0; i < opSequence.Length; i++)
-            {
-                var op = opSequence[i];
-                
-                currentValue = op.Evaluate(
-                    currentValue,
-                    equation.Arguments[i + 1]);
-            }
-            if (currentValue == equation.Value)
+            if (TestOperatorSequence(equation, opSequence))
                 return true;
         }
         
         return false;
     }
 
+    private static bool TestOperatorSequence(Equation equation, IOperator[] opSequence)
+    {
+        
+        long[] ProcessArguments(long[] arguments, IOperator[] opSequence, int opLevel = 0)
+        {
+            var hasHigherOps = opSequence
+                .Any(op => op.OperationOrder > opLevel);
+            
+            if (hasHigherOps)
+                arguments = ProcessArguments(arguments, opSequence, opLevel + 1);
 
+            var currentAndLowerOps = opSequence
+                    .Where(op => 
+                        op.OperationOrder <= opLevel)
+                    .ToArray();
+            
+            List<long> results = [];
+
+            long? runningValue = null;
+            for (var i = 0; i < currentAndLowerOps.Length; i++)
+            {
+                var op = currentAndLowerOps[i];
+
+                if (op.OperationOrder != opLevel)
+                {
+                    if (runningValue.HasValue)
+                        results.Add(runningValue.Value);
+                    runningValue = null;
+                    results.Add(arguments[i]);
+                    continue;
+                }
+
+                if (runningValue is null)
+                    runningValue = equation.Arguments[i];
+                
+                runningValue = op.Evaluate(
+                    runningValue.Value,
+                    equation.Arguments[i + 1]);
+                
+            }
+            if (runningValue.HasValue)
+                results.Add(runningValue.Value);
+            
+            return results.ToArray();
+        }
+
+        var results = ProcessArguments(
+            equation.Arguments.ToArray(),
+            opSequence);
+
+        foreach (var result in results)
+        {
+            if (result == equation.Value)
+                return true;
+        }
+        
+        return false;
+    }
 }
