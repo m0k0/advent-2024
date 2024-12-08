@@ -39,15 +39,9 @@ public class Day08Solver: ISolver
                 {
                     if (i == i2)
                         continue;
-
+                    
                     var targetAntenna = antennae[i2];
-
-
-                    var antiNodeX =  targetAntenna.Location.X - (sourceAntenna.Location.X - targetAntenna.Location.X);
-                    var antiNodeY =  targetAntenna.Location.Y - (sourceAntenna.Location.Y - targetAntenna.Location.Y);
-
-                    if (antiNodeMap.IsInside(antiNodeX, antiNodeY))
-                        antiNodeMap[antiNodeX, antiNodeY] = '#';
+                    MarkAntiNodes(sourceAntenna,targetAntenna, antiNodeMap);
                 }
             }
             
@@ -64,5 +58,27 @@ public class Day08Solver: ISolver
         var antiNodeCount = antiNodeMap.Count((char? p) => p is not null);
         
         return Result.Ok(antiNodeCount.ToString());
+    }
+
+    private static void MarkAntiNodes(
+        MapPoint<char?> sourceAntenna, 
+        MapPoint<char?> targetAntenna, 
+        Map2D<char?> antiNodeMap,
+        int limit = 1)
+    {
+        var antennaDistanceX = sourceAntenna.Location.X - targetAntenna.Location.X;
+        var antennaDistanceY = sourceAntenna.Location.Y - targetAntenna.Location.Y;
+        
+        var antiNodeX = targetAntenna.Location.X - antennaDistanceX;
+        var antiNodeY = targetAntenna.Location.Y - antennaDistanceY;
+        
+        while (antiNodeMap.IsInside(antiNodeX, antiNodeY) && limit-- > 0)
+        {
+            antiNodeMap[antiNodeX, antiNodeY] = '#';
+
+            antiNodeX -= antennaDistanceX;
+            antiNodeY -= antennaDistanceY;
+        }
+        
     }
 }
