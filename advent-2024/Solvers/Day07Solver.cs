@@ -9,13 +9,38 @@ public class Day07Solver : ISolver
         public List<int> Arguments { get; } = [];
     }
 
-    enum Operator
+    interface IOperator
     {
-        Add,
-        Subtract,
-        Multiply,
-        Divide,
+        int OperationOrder { get; }
+        long Evaluate(long leftOperand, long rightOperand);
     }
+
+    class MultiplyOperator : IOperator
+    {
+        public int OperationOrder { get; } = 0;
+        public long Evaluate(long leftOperand, long rightOperand)
+        {
+            return leftOperand * rightOperand;
+        }
+    }
+    class AddOperator : IOperator
+    {
+        public int OperationOrder { get; } = 0;
+        public long Evaluate(long leftOperand, long rightOperand)
+        {
+            return leftOperand + rightOperand;
+        }
+    }
+    class ConcatOperator : IOperator
+    {
+        public int OperationOrder { get; } = 1;
+        public long Evaluate(long leftOperand, long rightOperand)
+        {
+            var concat = $"{leftOperand}{rightOperand}"; 
+            return long.Parse(concat);
+        }
+    }
+
     
     
     private readonly TextReader _inputReader;
@@ -96,18 +121,20 @@ public class Day07Solver : ISolver
             equations = successResult.Value ?? [];
         }
 
-        Operator[] availableOperators =
+        List<IOperator> availableOperators =
         [
-            Operator.Add,
-            Operator.Multiply
+            new AddOperator(),
+            new MultiplyOperator(),
         ];
+        if (variant == SolutionVariant.PartTwo)
+            availableOperators.Add(new ConcatOperator());
 
         
         
         long validEquationSum = 0;
         foreach (var equation in equations)
         {
-            var hasSolution = TestEquation(equation, availableOperators);
+            var hasSolution = TestEquation(equation, availableOperators.ToArray());
             if (!hasSolution)
                 continue;
             
@@ -119,9 +146,9 @@ public class Day07Solver : ISolver
     }
     
     
-    IEnumerable<Operator[]> GetOperatorSequences(
-        Operator[] availableOperators, 
-        Operator[]? currentSequence = null, 
+    IEnumerable<IOperator[]> GetOperatorSequences(
+        IOperator[] availableOperators, 
+        IOperator[]? currentSequence = null, 
         int operationCount = 0)
     {
         
@@ -130,8 +157,9 @@ public class Day07Solver : ISolver
         
         foreach (var op in availableOperators)
         {
-            var newSequence = new List<Operator>(currentSequence);
+            var newSequence = new List<IOperator>(currentSequence);
             newSequence.Add(op);
+            
             var newSequenceArray = newSequence.ToArray();
             if (operationCount <= 1)
             {
@@ -148,7 +176,7 @@ public class Day07Solver : ISolver
         }
         
     }
-    private bool TestEquation(Equation equation, Operator[] availableOperators)
+    private bool TestEquation(Equation equation, IOperator[] availableOperators)
     {
         var opSequences = GetOperatorSequences(
             availableOperators, 
@@ -160,7 +188,8 @@ public class Day07Solver : ISolver
             for (var i = 0; i < opSequence.Length; i++)
             {
                 var op = opSequence[i];
-                currentValue = PerformOperation(op,
+                
+                currentValue = op.Evaluate(
                     currentValue,
                     equation.Arguments[i + 1]);
             }
@@ -170,19 +199,6 @@ public class Day07Solver : ISolver
         
         return false;
     }
-    
-    
 
-    private long PerformOperation(Operator op, long leftOperand, int rightOperand)
-    {
-        
-        return op switch
-        {
-            Operator.Add => leftOperand + rightOperand,
-            Operator.Subtract => leftOperand - rightOperand,
-            Operator.Multiply => leftOperand * rightOperand,
-            Operator.Divide => leftOperand / rightOperand,
-            _ => throw new NotImplementedException()
-        };
-    }
+
 }
