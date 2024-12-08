@@ -41,7 +41,8 @@ public class Day08Solver: ISolver
                         continue;
                     
                     var targetAntenna = antennae[i2];
-                    MarkAntiNodes(sourceAntenna,targetAntenna, antiNodeMap);
+                    
+                    MarkAntiNodes(sourceAntenna,targetAntenna, antiNodeMap, variant);
                 }
             }
             
@@ -64,20 +65,29 @@ public class Day08Solver: ISolver
         MapPoint<char?> sourceAntenna, 
         MapPoint<char?> targetAntenna, 
         Map2D<char?> antiNodeMap,
-        int limit = 1)
+        SolutionVariant? variant = SolutionVariant.PartOne)
     {
         var antennaDistanceX = sourceAntenna.Location.X - targetAntenna.Location.X;
         var antennaDistanceY = sourceAntenna.Location.Y - targetAntenna.Location.Y;
         
-        var antiNodeX = targetAntenna.Location.X - antennaDistanceX;
-        var antiNodeY = targetAntenna.Location.Y - antennaDistanceY;
+        var antiNodeX = targetAntenna.Location.X;
+        var antiNodeY = targetAntenna.Location.Y;
+
+        if (variant == SolutionVariant.PartOne)
+        {
+            antiNodeX -= antennaDistanceX;
+            antiNodeY -= antennaDistanceY;
+        }
         
-        while (antiNodeMap.IsInside(antiNodeX, antiNodeY) && limit-- > 0)
+        while (antiNodeMap.IsInside(antiNodeX, antiNodeY))
         {
             antiNodeMap[antiNodeX, antiNodeY] = '#';
 
             antiNodeX -= antennaDistanceX;
             antiNodeY -= antennaDistanceY;
+
+            if (variant == SolutionVariant.PartOne)
+                break;
         }
         
     }
