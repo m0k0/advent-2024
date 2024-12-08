@@ -67,25 +67,36 @@ public class Map2D<T> : IEnumerable<T>
     /// <summary>
     /// Merges values of current map onto another map.
     /// </summary>
-    /// <param name="other">The other map</param>
-    /// <param name="mask">Optionally specify specific values to include, does not copy other values</param>
+    /// <param name="other">The other map, if not specified, merge will be performed with a blank map</param>
+    /// <param name="mask">Optionally specify specific values to include, does not copy other values.</param>
     /// <param name="expand">If true, and the current map is smaller than the other map,
-    ///     expands the resulting map to the size of the current map</param>
+    ///     expands the resulting map to the size of the current map.
+    ///     Always true if 'other' map is null</param>
+    /// <param name="includeNulls">If true, include null values during the merge (opaque merge).</param>
     /// <returns>A new map representing the product</returns>
-    public Map2D<T> Merge(Map2D<T> other, T[]? mask = null, bool expand = false)
+    public Map2D<T> Merge(Map2D<T>? other = null, T[]? mask = null, bool expand = false, bool includeNulls = false)
     {
-        var width = expand ? Width : other.Width;
-        var height = expand ? Height : other.Height;
+        var width = expand || other is null ? Width : other.Width;
+        var height = expand || other is null ? Height : other.Height;
         Map2D<T> newMap = new Map2D<T>(width);
-        other.CopyTo(newMap);
+        
+        if (other is not null)
+            other.CopyTo(newMap);
+
+        while (newMap.Height < Height)
+        {
+            newMap.AppendRow();
+        }
         
         for (var y = 0; y < height ; y++)
         {
             for (var x = 0; x < width; x++)
             {
                 var value =  this[x, y];
-                if (mask is not null && mask.Contains(value))
+                if (mask is not null && mask.Contains(value) ||
+                    !includeNulls && value is null)
                     continue;
+                
                 newMap[x,y] = value;
             }
         }
