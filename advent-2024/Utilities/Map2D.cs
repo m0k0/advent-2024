@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Drawing;
 using System.Text;
 
 namespace AdventOfCode.Y2K24.Utilities;
@@ -26,9 +27,14 @@ public static class AdventMap2D
         return map?.ToStringLines(characterMapper) ?? [];
     }
 }
-public class Map2D<T> : IEnumerable<T>
-{
 
+class MapPoint<T>(T? value, Point location)
+{
+    public T? Value { get; } = value;
+    public Point Location { get; } = location;
+}
+public class Map2D<T> : IEnumerable<T>, IEnumerable<MapPoint<T>>
+{
     private readonly List<T?[]> _mapData = [];
     private int _width = 0;
     public int Width => _width;
@@ -47,7 +53,14 @@ public class Map2D<T> : IEnumerable<T>
         }
     }
 
-
+    public bool IsInside(Point location)
+    {
+        return IsInside(location.X, location.Y);
+    }
+    public bool IsInside(int x, int y)
+    {
+        return !(x < 0 || x >= Width || y < 0 || y >= Height);
+    }
     public T?[] AppendRow(T?[]? data = null)
     {
         var newRow = new T?[_width];
@@ -125,7 +138,7 @@ public class Map2D<T> : IEnumerable<T>
             for (var x = 0; x < width; x++)
             {
                 var value =  this[x, y];
-                if (mask is not null && mask.Contains(value) ||
+                if (mask is not null && !mask.Contains(value) ||
                     !includeNulls && value is null)
                     continue;
                 
@@ -156,6 +169,19 @@ public class Map2D<T> : IEnumerable<T>
         }
     }
 
+
+    IEnumerator<MapPoint<T>> IEnumerable<MapPoint<T>>.GetEnumerator()
+    {
+        for (var y = 0; y < Height ; y++)
+        {
+            for (var x = 0; x < Width; x++)
+            {
+                var value = this[x, y];
+                var point = new MapPoint<T>(value, new(x, y));
+                yield return point;
+            }
+        }
+    }
 
     public IEnumerator<T> GetEnumerator()
     {
