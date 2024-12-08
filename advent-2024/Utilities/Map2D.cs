@@ -65,6 +65,16 @@ public class Map2D<T> : IEnumerable<T>
     }
 
     /// <summary>
+    /// Filters the current map into a new map instance
+    /// </summary>
+    /// <param name="mask">Values to include</param>
+    /// <param name="includeNulls">Include null values</param>
+    /// <returns>A new map instance, filtered to specification</returns>
+    public Map2D<T> Filter(T[] mask, bool includeNulls = false)
+    {
+        return Merge(null, mask, includeNulls);
+    }
+    /// <summary>
     /// Merges values of current map onto another map.
     /// </summary>
     /// <param name="other">The other map, if not specified, merge will be performed with a blank map</param>
@@ -74,7 +84,7 @@ public class Map2D<T> : IEnumerable<T>
     ///     Always true if 'other' map is null</param>
     /// <param name="includeNulls">If true, include null values during the merge (opaque merge).</param>
     /// <returns>A new map representing the product</returns>
-    public Map2D<T> Merge(Map2D<T>? other = null, T[]? mask = null, bool expand = false, bool includeNulls = false)
+    public Map2D<T> Merge(Map2D<T>? other, T[]? mask = null, bool expand = false, bool includeNulls = false)
     {
         var width = expand || other is null ? Width : other.Width;
         var height = expand || other is null ? Height : other.Height;
