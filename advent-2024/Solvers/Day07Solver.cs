@@ -22,6 +22,8 @@ public class Day07Solver : ISolver
         {
             return leftOperand * rightOperand;
         }
+
+        public override string ToString() => "*";
     }
     class AddOperator : IOperator
     {
@@ -30,15 +32,19 @@ public class Day07Solver : ISolver
         {
             return leftOperand + rightOperand;
         }
+
+        public override string ToString() => "+";
     }
     class ConcatOperator : IOperator
     {
-        public int OperationOrder { get; } = 1;
+        public int OperationOrder { get; } = 0;
         public long Evaluate(long leftOperand, long rightOperand)
         {
             var concat = $"{leftOperand}{rightOperand}"; 
             return long.Parse(concat);
         }
+
+        public override string ToString() => "||";
     }
 
     
@@ -132,15 +138,22 @@ public class Day07Solver : ISolver
         
         
         long validEquationSum = 0;
+        List<Task<long>> testTasks = [];
         foreach (var equation in equations)
         {
-            var hasSolution = TestEquation(equation, availableOperators.ToArray());
-            if (!hasSolution)
-                continue;
-            
-            validEquationSum += equation.Value;
+            var testTask = Task.Run(() =>
+            {
+                var hasSolution = TestEquation(equation, availableOperators.ToArray());
+                if (!hasSolution)
+                    return 0;
+
+                return equation.Value;
+            });
+            testTasks.Add(testTask);
         }
-        
+
+        var completionTask = Task.WhenAll(testTasks.ToArray());
+        validEquationSum = completionTask.Result.Sum();
         
         return Result.Ok(validEquationSum.ToString());
     }
@@ -194,6 +207,16 @@ public class Day07Solver : ISolver
     private static bool TestOperatorSequence(Equation equation, IOperator[] opSequence)
     {
         
+        string GetOpSequenceString(long[] arguments, IOperator[] opSequence)
+        {
+            string result = $"{arguments[0]} ";
+            for (var i = 0; i < opSequence.Length; i++)
+            {
+                result += $"{opSequence[i]} {arguments[i + 1]} ";
+            }
+            return result.TrimEnd();
+        }
+        
         long[] ProcessArguments(long[] arguments, IOperator[] opSequence, int opLevel = 0)
         {
             var hasHigherOps = opSequence
@@ -207,9 +230,15 @@ public class Day07Solver : ISolver
                         op.OperationOrder <= opLevel)
                     .ToArray();
             
+            var sequenceString = GetOpSequenceString(arguments, currentAndLowerOps);
+            
             List<long> results = [];
 
             long? runningValue = null;
+
+            if (currentAndLowerOps.Length == 0)
+                return arguments;
+
             for (var i = 0; i < currentAndLowerOps.Length; i++)
             {
                 var op = currentAndLowerOps[i];
@@ -218,29 +247,40 @@ public class Day07Solver : ISolver
                 {
                     if (runningValue.HasValue)
                         results.Add(runningValue.Value);
+                    
                     runningValue = null;
-                    results.Add(arguments[i]);
+
+                    if (i == currentAndLowerOps.Length - 1)
+                    {
+                        results.Add(arguments[i+1]);
+                    }
+                    else
+                    {
+                        results.Add(arguments[i]);
+                    }
+                
                     continue;
                 }
 
                 if (runningValue is null)
-                    runningValue = equation.Arguments[i];
+                    runningValue = arguments[i];
                 
                 runningValue = op.Evaluate(
                     runningValue.Value,
-                    equation.Arguments[i + 1]);
+                    arguments[i + 1]);
                 
             }
+
             if (runningValue.HasValue)
                 results.Add(runningValue.Value);
             
             return results.ToArray();
         }
 
+        var sequenceString = GetOpSequenceString(equation.Arguments.ToArray(), opSequence);
         var results = ProcessArguments(
             equation.Arguments.ToArray(),
             opSequence);
-
         foreach (var result in results)
         {
             if (result == equation.Value)
