@@ -2,8 +2,30 @@ using System.Collections;
 using System.Text;
 
 namespace AdventOfCode.Y2K24.Utilities;
+public static class AdventMap2D
+{
+    
+    public static readonly Func<char, char?> DefaultInputMapper = (value) => value switch
+    {
+        '.' => null,
+        _ => value
+    };
+    public static readonly Func<char?, char> DefaultOutputMapper = (value) => value switch
+    {
+        _ => value ?? '.'
+    };
+    public static Map2D<char?>? FromReader(TextReader reader, Func<char, char?>? characterMapper = null)
+    {
+        characterMapper ??= DefaultInputMapper;
+        return Map2D.FromReader(reader, characterMapper);
+    }
 
-
+    public static IEnumerable<string> ToStringLines(Map2D<char?>? map, Func<char?, char>? characterMapper = null)
+    {
+        characterMapper ??= DefaultOutputMapper;
+        return map?.ToStringLines(characterMapper) ?? [];
+    }
+}
 public class Map2D<T> : IEnumerable<T>
 {
 
