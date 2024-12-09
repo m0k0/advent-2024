@@ -29,47 +29,60 @@ public class Day09Solver :ISolver
     public Result Solve(SolutionVariant? variant)
     {
         var line = _inputReader.ReadLine();
-
-        while (!string.IsNullOrEmpty(line))
-        {
-            var lineParts = line.ToCharArray();
-
-            var summary = GetBlockSummary(lineParts);
-
-            // defrag
-            var emptyBlocks = summary.FreeBlocks;
-            
-            var leftIndex = 0;
-            for (var rightIndex = 1; 
-                 rightIndex <= summary.Blocks.Length && emptyBlocks > 0; 
-                 rightIndex++)
-            {
-                var block = summary.Blocks[^rightIndex];
-                if (block is null)
-                    continue;
-                
-                // find space
-                while(summary.Blocks[leftIndex] is not null &&
-                      leftIndex < summary.Blocks.Length)
-                    leftIndex++;
-
-                summary.Blocks[leftIndex] = block;
-                summary.Blocks[^rightIndex] = null;
-                emptyBlocks--;
-            }    
-            
+        if (string.IsNullOrWhiteSpace(line))
+            return Result.Fail("Failed to read input");
         
+        var lineParts = line.ToCharArray();
+
+        var summary = GetBlockSummary(lineParts);
+        
+        DefragBlocks(summary.Blocks);
+
+        var checksum = CalculateChecksum(summary.Blocks);
+        
+        
+        return Result.Ok(checksum.ToString());
+    }
+
+    private long CalculateChecksum(int?[] blocks)
+    {
+        long checksum = 0;
+        for (var blockIndex = 0; blockIndex < blocks.Length; blockIndex++)
+        {
+            var block = blocks[blockIndex];
+            if (block == null)
+                break;
             
-            
-            foreach (var block in summary.Blocks)
-                Console.Write((block is null ? ' ' : DigitToChar(block.Value)));
-            
-            line = _inputReader.ReadLine();
+            checksum += block.Value * blockIndex;
         }
         
-        
-        
-        return Result.Fail("No solution yet");
+        return checksum;
+    }
+
+    private void DefragBlocks(int?[] blocks)
+    {
+        var leftIndex = 0;
+        var rightIndex = blocks.Length;
+            
+        while (rightIndex >= 0)
+        {
+            rightIndex--;
+                
+            var block = blocks[rightIndex];
+            if (block is null)
+                continue;
+
+            // find space
+            while(blocks[leftIndex] is not null &&
+                  leftIndex < blocks.Length)
+                leftIndex++;
+
+            if (leftIndex > rightIndex)
+                break;
+                
+            blocks[leftIndex] = block;
+            blocks[rightIndex] = null;
+        }
     }
 
     BlockSummary GetBlockSummary(IEnumerable<char> diskMap)
