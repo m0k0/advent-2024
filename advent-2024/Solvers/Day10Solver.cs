@@ -37,12 +37,14 @@ public class Day10Solver : ISolver
                 map, trailHead.Location.X, trailHead.Location.Y);
                 //.ToList();
                 
-                var trailScore = trail.Where(p => p.Value == 9)
-                    .Select(p => p.Location)
-                    .Distinct()
-                    .Count();
+                var trailEnds = trail.Where(p => p.Value == 9)
+                    .Select(p => p.Location);
+                    
+                if (variant == SolutionVariant.PartOne)
+                    trailEnds = trailEnds.Distinct();
                 
-                scoreSum += trailScore;
+                
+                scoreSum += trailEnds.Count();;
                 /*
                 foreach (var point in trail)
                 {
