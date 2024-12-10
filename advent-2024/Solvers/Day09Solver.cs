@@ -93,18 +93,19 @@ public class Day09Solver :ISolver
             return null;
         }
 
-        void MoveFile(DiskSegment from, DiskSegment to)
+        void MoveFile(DiskSegment file, DiskSegment space)
         {
-            var sourceIndex = from.BlockIndex;
-            var targetIndex = to.BlockIndex;
+            var sourceIndex = file.BlockIndex;
+            var targetIndex = space.BlockIndex;
 
-            for (var i = 0; i < from.Size; i++)
+            for (var i = 0; i < file.Size; i++)
             {
                 blocks[targetIndex + i] = blocks[sourceIndex + i];
                 blocks[sourceIndex + i] = null;
             }
-            from.BlockIndex = targetIndex;
-            to.BlockIndex = sourceIndex;
+            file.BlockIndex = targetIndex;
+            space.BlockIndex += file.Size;
+            space.Size -= file.Size;
             
         }
 
