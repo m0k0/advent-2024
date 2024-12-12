@@ -95,6 +95,7 @@ optionsJson = JsonSerializer.Serialize(options);
 File.WriteAllText(optionsInputCachePath, optionsJson, Encoding.UTF8);
 
 // get solution
+ConsoleElf.SayStart();
 var solution = solver.Solve(options.Variant);
 
 switch (solution)

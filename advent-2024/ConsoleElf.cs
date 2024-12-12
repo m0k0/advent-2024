@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace AdventOfCode.Y2K24;
 
 public static class ConsoleElf
@@ -85,8 +87,17 @@ public static class ConsoleElf
             
         ConsoleElf.ResetColor();
     }
+
+    private static Stopwatch _stopwatch = new Stopwatch();
+    public static void SayStart()
+    {
+        _stopwatch.Restart();
+        ConsoleElf.SayOk($"OK! The time is {DateTime.Now.TimeOfDay}. Let's get started.");
+    }
+
     public static void SayResult(FailureResult failureResult)
     {
+        _stopwatch.Stop();
         var indent = "";
         ConsoleElf.SetColor(
             ConsoleColor.DarkRed, 
@@ -94,7 +105,8 @@ public static class ConsoleElf
     
         var currentResult = failureResult;
         
-        ConsoleElf.SayError("Oh no! We've got a problem!");
+        ConsoleElf.SayError($"Oh no! We found a problem {
+            _stopwatch.Elapsed.TotalMilliseconds} ms. in!");
         
         while (currentResult is not null)
         {
@@ -103,11 +115,14 @@ public static class ConsoleElf
             currentResult = currentResult.InnerResult;
         }
         ConsoleElf.ResetColor();
+        
     }
 
     public static void SayResult<T>(SuccessResult<T> successResult)
     {
-        ConsoleElf.SayOk($"All done! {FestiveEmoji.Present}");
+        _stopwatch.Stop();
+        ConsoleElf.SayOk($"Phew - All done! {FestiveEmoji.Present}, that took us {
+            _stopwatch.Elapsed.Milliseconds} ms.");
         Console.WriteLine(successResult);
     }
 
