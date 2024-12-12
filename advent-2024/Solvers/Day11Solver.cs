@@ -23,15 +23,39 @@ public class Day11Solver : ISolver
         if (string.IsNullOrEmpty(line))
             return Result.Fail("No input");
         
-        //var numbers = line.Split(' ');
-        //var stones = new LinkedList<string>(numbers);
 
-        int blinkCount = 25;
+        // start tasking after x stones
+        int mtThreshold = 16;
+        
+        int blinkDepth = 25;
         if (variant == SolutionVariant.PartTwo)
-            blinkCount = 75;
+            blinkDepth = 75;
 
         var stones = line;
         long stoneCount = 0;
+
+        var blinkCount = 0;
+        while (stoneCount < mtThreshold)
+        {
+            var blinkedStones = EnumerateStones(stones, 1).ToList();
+            stoneCount = blinkedStones.Count;
+            stones = string.Join(" ", blinkedStones);
+            blinkCount++;
+        }
+            
+        // enough stones; now multi-task
+        
+        var enumerationTasks = new List<Task<int>>();
+        foreach (var stone in stones.Split(' '))
+        {
+            var task = Task.Run(() => EnumerateStones(stone, blinkDepth - blinkCount).Count());
+            enumerationTasks.Add(task);
+        }
+        
+        var completionTask = Task.WhenAll(enumerationTasks.ToArray());
+        completionTask.Wait();
+        stoneCount = completionTask.Result.Sum();
+        /*
         for (var i = 0; i < blinkCount; i++)
         {
             //var result = Blink(stones);
@@ -47,9 +71,109 @@ public class Day11Solver : ISolver
                 stones = successResult.Value.Stones;
                 stoneCount = successResult.Value.StoneCount;
             }
-        }
+        }*/
 
         return Result.Ok(stoneCount.ToString());
+    }
+
+    private IEnumerable<string?> EnumerateStones(string? stoneStream, int blinkDepth)
+    {
+        if (string.IsNullOrEmpty(stoneStream))
+            yield break;
+
+        const int bufferSize = sizeof(long) * sizeof(char);
+        char[] stoneBuffer = new char[bufferSize];
+        int stoneNumberSize = 0;
+        
+        //long stoneCount = 0;
+        for(var i = 0; i < stoneStream.Length; i++)
+        {
+            var c = stoneStream[i];
+
+            if (i == stoneStream.Length - 1)
+            {
+                stoneBuffer[stoneNumberSize++] = c;
+            } else if (c != ' ')
+            {
+                stoneBuffer[stoneNumberSize++] = c;
+                continue;
+            }
+
+            if (stoneNumberSize == 1 && stoneBuffer[0] == '0')
+            {
+                const string value = "1";
+                if (blinkDepth <= 1)
+                {
+                    yield return value;
+                }
+                else
+                {
+                    foreach (var stone in EnumerateStones(value, blinkDepth-1))
+                        yield return stone;
+                }
+            } 
+            else if (stoneNumberSize % 2 == 0)
+            {
+                var halfSize = stoneNumberSize / 2;
+                var firstHalf = new string(stoneBuffer[..halfSize]);
+                
+                
+                if (blinkDepth <= 1)
+                {
+                    yield return firstHalf;
+                }
+                else
+                {
+                    foreach (var stone in EnumerateStones(
+                                 firstHalf, blinkDepth-1))
+                        yield return stone;
+                }
+                
+                
+                
+                
+                if (!long.TryParse(stoneBuffer[halfSize..stoneNumberSize], out var secondHalfValue ))
+                    throw new Exception($"Failed to interpret stone!");
+                var secondHalf = secondHalfValue.ToString();
+                
+                if (blinkDepth <= 1)
+                {
+                    yield return secondHalf;
+                }
+                else
+                {
+                    foreach (var stone in EnumerateStones(
+                                 secondHalf, blinkDepth-1))
+                        yield return stone;
+                }
+
+
+            }
+            else
+            {
+                if (!long.TryParse(stoneBuffer[0..stoneNumberSize], out var value))
+                    throw new Exception($"Failed to interpret stone!");
+
+                value *= 2024;
+
+                if (blinkDepth <= 1)
+                {
+                    yield return value.ToString();
+                }
+                else
+                {
+                    foreach (var stone in EnumerateStones(
+                                 value.ToString(), blinkDepth-1))
+                        yield return stone;
+                }
+                
+            }
+
+            stoneNumberSize = 0;
+            
+        }
+
+
     }
     private Result BlinkString(ReadOnlySpan<char> stoneStream)
     {
