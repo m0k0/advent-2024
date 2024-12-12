@@ -1,10 +1,17 @@
+using System.Text;
+
 namespace AdventOfCode.Y2K24.Solvers;
 
 [SolverFor(11)]
 public class Day11Solver : ISolver
 {
+    class StoneSummary
+    {
+        public long StoneCount { get; init; }
+        public string? Stones { get; init; }
+    }
     private readonly TextReader _inputReader;
-
+    
     public Day11Solver(TextReader inputReader)
     {
         _inputReader = inputReader;
@@ -16,23 +23,99 @@ public class Day11Solver : ISolver
         if (string.IsNullOrEmpty(line))
             return Result.Fail("No input");
         
-        var numbers = line.Split(' ');
-        var stones = new LinkedList<string>(numbers);
+        //var numbers = line.Split(' ');
+        //var stones = new LinkedList<string>(numbers);
 
-        const int blinkCount = 25;
+        int blinkCount = 25;
+        if (variant == SolutionVariant.PartTwo)
+            blinkCount = 75;
+
+        var stones = line;
+        long stoneCount = 0;
         for (var i = 0; i < blinkCount; i++)
         {
-            var result = Blink(stones);
+            //var result = Blink(stones);
+            var result = BlinkString(stones);
             if (result is FailureResult failureResult)
+            {
                 return Result.Fail($"Blink {i + 1} failed", failureResult);
-            
+            } else if (result is SuccessResult<StoneSummary> successResult)
+            {
+                if (successResult.Value is null)
+                    return Result.Fail($"Blink {i + 1} has no output");
+                
+                stones = successResult.Value.Stones;
+                stoneCount = successResult.Value.StoneCount;
+            }
         }
 
-        var solution = stones.Count;
-        
-        return Result.Ok(solution.ToString());
+        return Result.Ok(stoneCount.ToString());
     }
+    private Result BlinkString(ReadOnlySpan<char> stoneStream)
+    {
+        StringBuilder resultStoneStream = new(); 
+        const int bufferSize = sizeof(long) * sizeof(char);
+        Span<char> stoneBuffer = new char[bufferSize];
+        int stoneNumberSize = 0;
+        long stoneCount = 0;
+        for(var i = 0; i < stoneStream.Length; i++)
+        {
+            var c = stoneStream[i];
 
+            if (i == stoneStream.Length - 1)
+            {
+                stoneBuffer[stoneNumberSize++] = c;
+            } else if (c != ' ')
+            {
+                stoneBuffer[stoneNumberSize++] = c;
+                continue;
+            }
+
+            if (stoneNumberSize == 1 && stoneBuffer[0] == '0')
+            {
+                resultStoneStream.Append('1');
+                
+            } 
+            else if (stoneNumberSize % 2 == 0)
+            {
+                var halfSize = stoneNumberSize / 2;
+                var firstHalf = stoneBuffer[..halfSize];
+                resultStoneStream.Append(firstHalf);
+                
+                resultStoneStream.Append(' ');
+                var secondHalf = stoneBuffer[halfSize..stoneNumberSize];
+                
+                if (!long.TryParse(secondHalf, out var secondHalfValue ))
+                    return Result.Fail($"Failed to interpret stone! ");
+                
+                resultStoneStream.Append(secondHalfValue.ToString());
+                stoneCount++;
+            }
+            else
+            {
+                if (!long.TryParse(stoneBuffer[0..stoneNumberSize], out var value))
+                    return Result.Fail($"Failed to interpret stone! ");
+
+                value *= 2024;
+
+                resultStoneStream.Append(value.ToString());
+            }
+
+            stoneNumberSize = 0;
+            stoneCount++;
+            if (i < stoneStream.Length - 1)
+            {
+                resultStoneStream.Append(' ');
+            }
+        }
+
+        var result = new StoneSummary()
+        {
+            Stones = resultStoneStream.ToString(),
+            StoneCount = stoneCount
+        };
+        return Result.Ok(result);
+    }
     private Result Blink(LinkedList<string> stones)
     {
         var stone = stones.First;
